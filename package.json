@@ -1,0 +1,22 @@
+{
+  "name": "nubea-browser",
+  "version": "0.1.0",
+  "description": "Nubea - navegador simple sin historial por diseño",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "keywords": [
+    "browser",
+    "no-history",
+    "privacy",
+    "electron",
+    "nubea"
+  ],
+  "author": "Hanzzel Corp",
+  "license": "MIT",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^42.0.1"
+  }
+}

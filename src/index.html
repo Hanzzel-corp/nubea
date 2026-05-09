@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;"
+  />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nubea</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">Nubea</div>
+
+      <div class="window-controls">
+        <button id="btnP" title="Pequeño">P</button>
+        <button id="btnG" title="Grande">G</button>
+        <button id="btnC" title="Cerrar">C</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="main-panel">
+        <div id="homeScreen" class="home-screen">
+          <div class="logo"></div>
+          <h1>Nubea</h1>
+          <p class="subtitle">Navegador simple. Sin historial por diseño.</p>
+
+          <div class="search">
+            <input id="homeInput" placeholder="Buscar o escribir dirección" />
+            <button id="homeGo">Entrar</button>
+          </div>
+
+          <div class="quick-actions">
+            <button>Explorar</button>
+            <button>Privacidad</button>
+            <button>En vivo</button>
+          </div>
+
+          <small class="notice">
+            Nubea te da libertad para navegar. Los sitios que visitás y el uso que hacés de ellos son tu responsabilidad.
+          </small>
+        </div>
+
+        <webview
+          id="webview"
+          class="webview hidden"
+          src="about:blank"
+          partition="nubea-temp"
+          allowpopups="false"
+        ></webview>
+
+        <nav class="tabs-bar">
+          <button id="tabInicio" class="tab active">
+            <span>⌂</span>
+            Inicio
+          </button>
+
+          <button id="tabBusqueda" class="tab">
+            <span>⌕</span>
+            Búsqueda 1
+          </button>
+
+          <button class="tab plus">+</button>
+        </nav>
+      </section>
+
+      <aside class="sidebar">
+        <div class="side-address">
+          <input id="sideInput" placeholder="Buscar o escribir dirección" />
+          <button id="refreshBtn" title="Recargar / F5">↻</button>
+        </div>
+
+        <section class="panel-section">
+          <h2>Modo</h2>
+
+          <button class="mode selected" data-mode="normal">
+            <strong>Normal</strong>
+            <small>Experiencia completa de la web.</small>
+          </button>
+
+          <button class="mode" data-mode="limpio">
+            <strong>Limpio</strong>
+            <small>Menos distracciones, más enfoque.</small>
+          </button>
+
+          <button class="mode" data-mode="espejo">
+            <strong>Espejo</strong>
+            <small>Muestra solo lo esencial.</small>
+          </button>
+        </section>
+
+        <section class="panel-section">
+          <h2>Motores</h2>
+
+          <label class="engine"><input type="radio" name="engine" value="google" checked /> Google</label>
+          <label class="engine"><input type="radio" name="engine" value="bing" /> Bing</label>
+          <label class="engine"><input type="radio" name="engine" value="duckduckgo" /> DuckDuckGo</label>
+          <label class="engine"><input type="radio" name="engine" value="brave" /> Brave Search</label>
+        </section>
+
+        <section class="panel-section">
+          <h2>En vivo</h2>
+
+          <div class="metric">
+            <span>Historial</span>
+            <strong>No guardado</strong>
+          </div>
+
+          <div class="metric">
+            <span>Perfil</span>
+            <strong>Desactivado</strong>
+          </div>
+
+          <div class="metric">
+            <span>Sesión</span>
+            <strong>Temporal</strong>
+          </div>
+
+          <div class="metric">
+            <span>Modo activo</span>
+            <strong id="liveMode">normal</strong>
+          </div>
+
+          <div class="metric">
+            <span>Dominio</span>
+            <strong id="liveHost">—</strong>
+          </div>
+
+          <div class="metric metric-blocked">
+            <span>Bloqueados</span>
+            <strong id="liveBlocked">0</strong>
+          </div>
+
+          <div class="metric metric-blocked">
+            <span>Último bloqueado</span>
+            <strong id="liveLastBlocked">—</strong>
+          </div>
+
+          <div class="metric">
+            <span>Solicitudes</span>
+            <strong id="liveRequests">0</strong>
+          </div>
+
+          <div class="metric">
+            <span>Dominios externos</span>
+            <strong id="liveExternal">0</strong>
+          </div>
+
+          <div class="metric">
+            <span>Cookies intentadas</span>
+            <strong id="liveCookies">0</strong>
+          </div>
+
+          <div class="metric">
+            <span>Permisos pedidos</span>
+            <strong id="livePermissions">0</strong>
+          </div>
+
+          <div class="metric">
+            <span>Fallos externos</span>
+            <strong id="liveFailed">0</strong>
+          </div>
+
+          <div class="metric">
+            <span>Último externo</span>
+            <strong id="liveLastExternal">—</strong>
+          </div>
+
+          <div class="metric">
+            <span>Último fallo</span>
+            <strong id="liveLastError">—</strong>
+          </div>
+
+          <p class="side-note">
+            Nubea no conserva historial. Esta barra muestra solo información temporal de la página actual.
+          </p>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <script src="./renderer.js"></script>
+</body>
+</html>
