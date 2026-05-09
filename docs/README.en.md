@@ -2,9 +2,6 @@
 
 **Nubea** is a minimal no-history browser prototype focused on clean navigation, live inspection, and cognitive pollution awareness.
 
-> 🌍 **Documentation** | **Documentación**: [English](docs/README.en.md) • [Español](docs/README.es.md)  
-> 🏗️ **Architecture** | **Arquitectura**: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-
 It is not designed to compete with Chrome, Firefox, Brave, or Edge as a full browser engine. Nubea uses Electron/Chromium underneath, but defines its own browsing frame, interface, modes, and philosophy.
 
 > Nubea does not store your browsing history.  
@@ -59,17 +56,17 @@ This is an early prototype. It already opens pages, switches modes, blocks selec
 - Temporary browsing session
 - No local browsing history by design
 - Live page inspection:
-  - active domain
-  - requests
-  - external domains
-  - attempted cookies
-  - permission requests
-  - blocked requests
-  - last blocked domain
+  - Active domain
+  - Requests
+  - External domains
+  - Attempted cookies
+  - Permission requests
+  - Blocked requests
+  - Last blocked domain
 - Three browsing modes:
   - **Normal**
-  - **Limpio**
-  - **Espejo**
+  - **Limpio (Clean)**
+  - **Espejo (Mirror)**
 
 ---
 
@@ -81,13 +78,13 @@ Loads the page normally and displays live activity.
 
 Useful to see how much external activity a page triggers without blocking it.
 
-### Limpio
+### Limpio (Clean)
 
 Blocks known advertising, analytics, and tracking-related requests.
 
 This mode keeps the page more usable while reducing commercial and tracking noise.
 
-### Espejo
+### Espejo (Mirror)
 
 Aggressively blocks third-party requests.
 
@@ -130,39 +127,28 @@ A user may enter a page to read an article, but the page may also trigger:
 
 Nubea makes that activity visible.
 
-## Project Structure
+---
 
-```
-nubea-browser/
-├── docs/                  # Documentation (bilingual)
-│   ├── README.en.md       # English documentation
-│   ├── README.es.md       # Documentación en español
-│   └── ARCHITECTURE.md    # System architecture (EN/ES)
-├── src/                   # Source code
-│   ├── main.js            # Electron main process
-│   ├── preload.js         # Preload script (security)
-│   ├── index.html         # Main UI
-│   ├── styles.css         # Styling
-│   └── renderer.js        # UI logic
-├── .github/workflows/     # CI/CD automation
-│   └── release.yml        # Auto-build releases
-├── package.json           # Dependencies & scripts
-├── package-lock.json      # Lock file
-├── README.md              # Main entry
-├── CONTRIBUTING.md        # Contribution guide (EN/ES)
-├── GIT_GUIDE.md         # Git tutorial (EN/ES)
-└── .gitignore             # Git exclusions
-## Install & Run
+## Quick Start
+
+### Prerequisites
+
+- Node.js (v18 or higher recommended)
+- npm
+
+### Installation
 
 ```bash
-# Install dependencies
 npm install
+```
 
-# Run the application
+### Run
+
+```bash
 npm start
 ```
 
-## Build & Package
+### Build & Package
 
 ```bash
 # Build for Linux (AppImage + .deb)
@@ -175,11 +161,13 @@ npm run build:appimage
 npm run build:deb
 ```
 
+---
+
 ## GitHub Quick Start
 
-New to Git/GitHub? See [GIT_GUIDE.md](GIT_GUIDE.md) for step-by-step instructions.
+New to Git/GitHub? See [GIT_GUIDE.md](../GIT_GUIDE.md) for step-by-step instructions.
 
-Want to contribute? See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Want to contribute? See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.
 
 ### First Push to GitHub
 
@@ -205,6 +193,8 @@ git push origin v0.1.0
 
 GitHub Actions will automatically build AppImage and .deb packages.
 
+---
+
 ## Technical Notes
 
 Nubea currently uses Electron with a temporary session partition. The browser does not implement a custom web rendering engine. Rendering is handled by Chromium through Electron.
@@ -217,12 +207,33 @@ The value of Nubea is not the rendering engine. The value is the browsing frame:
 | **Chromium** | Rendering engine |
 | **Search engines** | External tools selected by the user |
 
-## Responsibility Notice
+---
 
-Nubea gives the user freedom to navigate. The websites visited and the way the browser is used remain the responsibility of the user.
+## Project Structure
 
-Nubea gives you access to the web, not direction.
-Where you go and how you use it is your responsibility.
+```
+nubea-browser/
+├── docs/                  # Documentation
+│   ├── README.en.md       # English documentation
+│   ├── README.es.md       # Spanish documentation
+│   └── ARCHITECTURE.md    # System architecture
+├── src/                   # Source code
+│   ├── main.js            # Electron main process
+│   ├── preload.js         # Preload script (security)
+│   ├── index.html         # Main UI
+│   ├── styles.css         # Styling
+│   └── renderer.js        # UI logic
+├── .github/workflows/     # CI/CD automation
+│   └── release.yml        # Auto-build releases
+├── package.json           # Dependencies & scripts
+├── package-lock.json      # Lock file
+├── README.md              # Main entry
+├── CONTRIBUTING.md        # Contribution guide
+├── GIT_GUIDE.md         # Git tutorial
+└── .gitignore             # Git exclusions
+```
+
+---
 
 ## Roadmap
 
@@ -240,9 +251,13 @@ Planned improvements:
 - [ ] Automated tests
 - [ ] Clearer cognitive pollution score
 
+---
+
 ## License
 
 MIT
+
+---
 
 ## Author
 
