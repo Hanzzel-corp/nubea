@@ -19,7 +19,11 @@ let liveState = {
   blocked: 0,
   lastExternal: "—",
   lastError: "—",
-  lastBlocked: "—"
+  lastBlocked: "—",
+  icc: 0,
+  risk: "bajo",
+  allowedNoise: 0,
+  allowedRisk: "bajo"
 };
 
 const TRACKER_HINTS = [
@@ -147,7 +151,9 @@ function resetLiveState(url) {
     blocked: 0,
     lastExternal: "—",
     lastError: "—",
-    lastBlocked: "—"
+    lastBlocked: "—",
+    icc: 0,
+    risk: "bajo"
   };
 
   console.log(`[Nubea] Nueva navegación: ${url}`);
@@ -157,8 +163,48 @@ function resetLiveState(url) {
   sendLiveState();
 }
 
+function riskLabel(score) {
+  if (score >= 75) return "crítico";
+  if (score >= 50) return "alto";
+  if (score >= 25) return "medio";
+  return "bajo";
+}
+
+function calculateICC() {
+  // ICC detectado:
+  // mide la contaminación intentada por la página.
+  // Incluye también lo bloqueado, porque eso existió como intento.
+  const detectedScore =
+    liveState.external * 0.35 +
+    liveState.cookies * 0.55 +
+    liveState.blocked * 0.75 +
+    liveState.permissions * 8 +
+    liveState.failed * 0.25;
+
+  const icc = Math.min(100, Math.round(detectedScore));
+
+  // Ruido permitido:
+  // mide lo que quedó pasando después del modo activo.
+  // Si Nubea bloquea mucho, este valor debería bajar.
+  const externalAllowed = Math.max(0, liveState.external - liveState.blocked);
+
+  const allowedScore =
+    externalAllowed * 0.45 +
+    liveState.cookies * 0.55 +
+    liveState.permissions * 8 +
+    liveState.failed * 0.25;
+
+  const allowedNoise = Math.min(100, Math.round(allowedScore));
+
+  liveState.icc = icc;
+  liveState.risk = riskLabel(icc);
+  liveState.allowedNoise = allowedNoise;
+  liveState.allowedRisk = riskLabel(allowedNoise);
+}
+
 function sendLiveState() {
   if (!mainWindow || mainWindow.isDestroyed()) return;
+  calculateICC();
   mainWindow.webContents.send("live:update", liveState);
 }
 

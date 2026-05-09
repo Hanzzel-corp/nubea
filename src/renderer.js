@@ -52,6 +52,11 @@ function buildUrl(raw) {
   return searchEngines[engine] + encodeURIComponent(value);
 }
 
+function displayUrl(url) {
+  if (!url || url === "about:blank") return "";
+  return url;
+}
+
 function setTabState(state) {
   if (state === "home") {
     tabInicio.classList.add("active");
@@ -65,6 +70,7 @@ function setTabState(state) {
 function showHome() {
   webview.classList.add("hidden");
   homeScreen.classList.remove("hidden");
+  sideInput.value = "";
   setTabState("home");
 }
 
@@ -121,13 +127,13 @@ document.addEventListener("keydown", (event) => {
 });
 
 webview.addEventListener("did-navigate", (event) => {
-  sideInput.value = event.url;
+  sideInput.value = displayUrl(event.url);
   // No reseteamos métricas acá.
   // El reset ocurre solo cuando Nubea inicia navegación o recarga.
 });
 
 webview.addEventListener("did-navigate-in-page", (event) => {
-  sideInput.value = event.url;
+  sideInput.value = displayUrl(event.url);
   // Navegación interna/hash: no reinicia métricas.
 });
 
@@ -179,6 +185,15 @@ window.nubeaAPI.onLiveUpdate((data) => {
   if (failed) failed.textContent = data.failed ?? 0;
   if (lastExternal) lastExternal.textContent = data.lastExternal ?? "—";
   if (lastError) lastError.textContent = data.lastError ?? "—";
+  const icc = document.getElementById("liveICC");
+  const risk = document.getElementById("liveRisk");
+  const allowedNoise = document.getElementById("liveAllowedNoise");
+  const allowedRisk = document.getElementById("liveAllowedRisk");
+
   if (blocked) blocked.textContent = data.blocked ?? 0;
   if (lastBlocked) lastBlocked.textContent = data.lastBlocked ?? "—";
+  if (icc) icc.textContent = data.icc ?? 0;
+  if (risk) risk.textContent = data.risk ?? "bajo";
+  if (allowedNoise) allowedNoise.textContent = data.allowedNoise ?? 0;
+  if (allowedRisk) allowedRisk.textContent = data.allowedRisk ?? "bajo";
 });

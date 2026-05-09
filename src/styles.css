@@ -375,3 +375,29 @@ h1 {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.metric-icc {
+  background: rgba(96, 160, 255, 0.08);
+  border: 1px solid rgba(96, 160, 255, 0.20);
+  border-radius: 8px;
+  padding: 0 8px;
+  margin: 4px 0;
+}
+
+.metric-icc span,
+.metric-icc strong {
+  color: #7eb2ff;
+}
+
+.metric-allowed {
+  background: rgba(88, 214, 141, 0.07);
+  border: 1px solid rgba(88, 214, 141, 0.18);
+  border-radius: 8px;
+  padding: 0 8px;
+  margin: 4px 0;
+}
+
+.metric-allowed span,
+.metric-allowed strong {
+  color: #78e6a0;
+}
