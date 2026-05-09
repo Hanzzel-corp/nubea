@@ -151,6 +151,7 @@ nubea-browser/
 ├── README.md              # Main entry
 ├── CONTRIBUTING.md        # Contribution guide (EN/ES)
 ├── GIT_GUIDE.md         # Git tutorial (EN/ES)
+├── LICENSE                # MIT License
 └── .gitignore             # Git exclusions
 ## Install & Run
 

@@ -230,6 +230,7 @@ nubea-browser/
 ├── README.md              # Main entry
 ├── CONTRIBUTING.md        # Contribution guide
 ├── GIT_GUIDE.md         # Git tutorial
+├── LICENSE                # MIT License
 └── .gitignore             # Git exclusions
 ```
 
