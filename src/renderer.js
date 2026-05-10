@@ -5,8 +5,11 @@ const btnC = document.getElementById("btnC");
 const homeScreen = document.getElementById("homeScreen");
 const webview = document.getElementById("webview");
 
-const homeInput = document.getElementById("homeInput");
-const homeGo = document.getElementById("homeGo");
+const directInput = document.getElementById("directInput");
+const directGo = document.getElementById("directGo");
+
+const searchInput = document.getElementById("searchInput");
+const searchGo = document.getElementById("searchGo");
 
 const sideInput = document.getElementById("sideInput");
 const refreshBtn = document.getElementById("refreshBtn");
@@ -23,7 +26,6 @@ const searchEngines = {
 
 let hasLoadedSomething = false;
 let activeMode = "normal";
-let lastNavigationKey = "";
 
 btnP.addEventListener("click", () => window.nubeaAPI.minimize());
 btnG.addEventListener("click", () => window.nubeaAPI.maximize());
@@ -34,19 +36,27 @@ function getSelectedEngine() {
   return selected ? selected.value : "google";
 }
 
-function buildUrl(raw) {
+function buildDirectUrl(raw) {
   const value = raw.trim();
   if (!value) return "";
 
-  const looksLikeUrl =
-    value.startsWith("http://") ||
-    value.startsWith("https://") ||
-    (value.includes(".") && !value.includes(" "));
+  if (value.startsWith("http://") || value.startsWith("https://")) {
+    return value;
+  }
 
-  if (looksLikeUrl) {
-    if (value.startsWith("http://") || value.startsWith("https://")) return value;
+  if (value.includes(".") && !value.includes(" ")) {
     return "https://" + value;
   }
+
+  // Decisión explícita de Nubea:
+  // en modo "Ir a una web", una palabra no se manda al buscador.
+  // Se interpreta como dominio simple .com.
+  return "https://" + value + ".com";
+}
+
+function buildSearchUrl(raw) {
+  const value = raw.trim();
+  if (!value) return "";
 
   const engine = getSelectedEngine();
   return searchEngines[engine] + encodeURIComponent(value);
@@ -71,6 +81,7 @@ function showHome() {
   webview.classList.add("hidden");
   homeScreen.classList.remove("hidden");
   sideInput.value = "";
+  window.nubeaAPI.homeReset();
   setTabState("home");
 }
 
@@ -81,13 +92,11 @@ function showWeb() {
 }
 
 function startNavigation(url) {
-  lastNavigationKey = `${activeMode}|${url}|${Date.now()}`;
   sideInput.value = url;
   window.nubeaAPI.navigationStart(url);
 }
 
-function navigate(raw) {
-  const url = buildUrl(raw);
+function loadUrl(url) {
   if (!url) return;
 
   hasLoadedSomething = true;
@@ -95,6 +104,14 @@ function navigate(raw) {
 
   startNavigation(url);
   webview.src = url;
+}
+
+function navigateDirect(raw) {
+  loadUrl(buildDirectUrl(raw));
+}
+
+function navigateSearch(raw) {
+  loadUrl(buildSearchUrl(raw));
 }
 
 function reloadCurrentPage() {
@@ -107,14 +124,20 @@ function reloadCurrentPage() {
   webview.reload();
 }
 
-homeGo.addEventListener("click", () => navigate(homeInput.value));
+directGo.addEventListener("click", () => navigateDirect(directInput.value));
 
-homeInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") navigate(homeInput.value);
+directInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") navigateDirect(directInput.value);
+});
+
+searchGo.addEventListener("click", () => navigateSearch(searchInput.value));
+
+searchInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") navigateSearch(searchInput.value);
 });
 
 sideInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") navigate(sideInput.value);
+  if (event.key === "Enter") navigateDirect(sideInput.value);
 });
 
 refreshBtn.addEventListener("click", reloadCurrentPage);
@@ -128,13 +151,10 @@ document.addEventListener("keydown", (event) => {
 
 webview.addEventListener("did-navigate", (event) => {
   sideInput.value = displayUrl(event.url);
-  // No reseteamos métricas acá.
-  // El reset ocurre solo cuando Nubea inicia navegación o recarga.
 });
 
 webview.addEventListener("did-navigate-in-page", (event) => {
   sideInput.value = displayUrl(event.url);
-  // Navegación interna/hash: no reinicia métricas.
 });
 
 webview.addEventListener("did-fail-load", (event) => {
@@ -180,16 +200,15 @@ window.nubeaAPI.onLiveUpdate((data) => {
   const lastError = document.getElementById("liveLastError");
   const blocked = document.getElementById("liveBlocked");
   const lastBlocked = document.getElementById("liveLastBlocked");
-
-  if (liveMode) liveMode.textContent = data.mode ?? activeMode;
-  if (failed) failed.textContent = data.failed ?? 0;
-  if (lastExternal) lastExternal.textContent = data.lastExternal ?? "—";
-  if (lastError) lastError.textContent = data.lastError ?? "—";
   const icc = document.getElementById("liveICC");
   const risk = document.getElementById("liveRisk");
   const allowedNoise = document.getElementById("liveAllowedNoise");
   const allowedRisk = document.getElementById("liveAllowedRisk");
 
+  if (liveMode) liveMode.textContent = data.mode ?? activeMode;
+  if (failed) failed.textContent = data.failed ?? 0;
+  if (lastExternal) lastExternal.textContent = data.lastExternal ?? "—";
+  if (lastError) lastError.textContent = data.lastError ?? "—";
   if (blocked) blocked.textContent = data.blocked ?? 0;
   if (lastBlocked) lastBlocked.textContent = data.lastBlocked ?? "—";
   if (icc) icc.textContent = data.icc ?? 0;

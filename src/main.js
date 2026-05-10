@@ -137,6 +137,30 @@ function shouldBlockRequest(details, host) {
   return false;
 }
 
+function resetHomeState() {
+  activeHost = "";
+
+  liveState = {
+    host: "—",
+    mode: currentMode,
+    requests: 0,
+    external: 0,
+    cookies: 0,
+    permissions: 0,
+    failed: 0,
+    blocked: 0,
+    lastExternal: "—",
+    lastError: "—",
+    lastBlocked: "—",
+    icc: 0,
+    risk: "bajo",
+    allowedNoise: 0,
+    allowedRisk: "bajo"
+  };
+
+  sendLiveState();
+}
+
 function resetLiveState(url) {
   activeHost = getHost(url);
 
@@ -342,6 +366,10 @@ ipcMain.handle("window:maximize", () => {
 
 ipcMain.handle("window:close", () => {
   if (mainWindow) mainWindow.close();
+});
+
+ipcMain.on("navigation:home", () => {
+  resetHomeState();
 });
 
 ipcMain.on("navigation:start", (_event, url) => {
