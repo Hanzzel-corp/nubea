@@ -27,21 +27,32 @@
         <div id="homeScreen" class="home-screen">
           <div class="logo"></div>
           <h1>Nubea</h1>
-          <p class="subtitle">Navegador simple. Sin historial por diseño.</p>
+          <p class="subtitle">Navegar no es buscar. Elegí si vas a un destino o si necesitás encontrar uno.</p>
 
-          <div class="search">
-            <input id="homeInput" placeholder="Buscar o escribir dirección" />
-            <button id="homeGo">Entrar</button>
-          </div>
+          <div class="entry-grid">
+            <section class="entry-card primary">
+              <h3>Ir a una web</h3>
+              <p>Cuando ya sabés el destino.</p>
 
-          <div class="quick-actions">
-            <button>Explorar</button>
-            <button>Privacidad</button>
-            <button>En vivo</button>
+              <div class="entry-line">
+                <input id="directInput" placeholder="ej: infobae.com o https://infobae.com" />
+                <button id="directGo">Ir</button>
+              </div>
+            </section>
+
+            <section class="entry-card">
+              <h3>Buscar en la web</h3>
+              <p>Cuando todavía no sabés dónde ir.</p>
+
+              <div class="entry-line">
+                <input id="searchInput" placeholder="ej: noticias de tecnología" />
+                <button id="searchGo">Buscar</button>
+              </div>
+            </section>
           </div>
 
           <small class="notice">
-            Nubea te da libertad para navegar. Los sitios que visitás y el uso que hacés de ellos son tu responsabilidad.
+            Nubea no convierte todo en búsqueda. Si sabés el destino, entrás directo. Si no sabés, elegís un buscador.
           </small>
         </div>
 
@@ -70,7 +81,7 @@
 
       <aside class="sidebar">
         <div class="side-address">
-          <input id="sideInput" placeholder="Buscar o escribir dirección" />
+          <input id="sideInput" placeholder="Ir a dirección directa" />
           <button id="refreshBtn" title="Recargar / F5">↻</button>
         </div>
 
@@ -94,7 +105,7 @@
         </section>
 
         <section class="panel-section">
-          <h2>Motores</h2>
+          <h2>Buscadores</h2>
 
           <label class="engine"><input type="radio" name="engine" value="google" checked /> Google</label>
           <label class="engine"><input type="radio" name="engine" value="bing" /> Bing</label>
