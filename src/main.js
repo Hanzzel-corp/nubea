@@ -8,6 +8,164 @@ const NUBEA_PARTITION = "nubea-temp"; // sin "persist:" => sesión temporal/en m
 let currentMode = "normal";
 let activeHost = "";
 
+const CATEGORY_KEYS = [
+  "analytics",
+  "ads",
+  "social",
+  "cdn",
+  "fonts",
+  "embed",
+  "consent",
+  "media",
+  "other"
+];
+
+const BLOCKABLE_IN_LIMPIO = new Set([
+  "analytics",
+  "ads",
+  "social",
+  "consent"
+]);
+
+const CLASSIFIERS = [
+  {
+    category: "analytics",
+    hosts: [
+      "google-analytics.com",
+      "analytics.google.com",
+      "hotjar.com",
+      "chartbeat.com",
+      "quantserve.com",
+      "scorecardresearch.com",
+      "permutive.com",
+      "newsroom.bi",
+      "go-mpulse.net",
+      "sensic.net",
+      "datadoghq.com"
+    ],
+    urlPatterns: ["analytics", "tracker", "tracking", "pixel", "event"]
+  },
+  {
+    category: "ads",
+    hosts: [
+      "doubleclick.net",
+      "googlesyndication.com",
+      "googleadservices.com",
+      "googleads.g.doubleclick.net",
+      "securepubads.g.doubleclick.net",
+      "pubads.g.doubleclick.net",
+      "pagead2.googlesyndication.com",
+      "adnxs.com",
+      "criteo.com",
+      "taboola.com",
+      "outbrain.com",
+      "pubmatic.com",
+      "rubiconproject.com",
+      "openx.net",
+      "amazon-adsystem.com",
+      "smartadserver.com",
+      "bidswitch.net",
+      "adsrvr.org",
+      "seedtag.com",
+      "admanmedia.com",
+      "iqzone.com"
+    ],
+    urlPatterns: ["adservice", "adserver", "adsystem", "prebid", "bidder", "adunit"]
+  },
+  {
+    category: "social",
+    hosts: [
+      "facebook.com",
+      "facebook.net",
+      "connect.facebook.net",
+      "twitter.com",
+      "x.com",
+      "platform.twitter.com",
+      "tiktok.com",
+      "linkedin.com"
+    ],
+    urlPatterns: ["/tr", "/pixel", "/i/adsct"]
+  },
+  {
+    category: "cdn",
+    hosts: [
+      "cloudfront.net",
+      "akamaihd.net",
+      "fastly.net",
+      "cloudflare.com",
+      "jsdelivr.net",
+      "unpkg.com",
+      "ebxcdn.com",
+      "uecdn.es",
+      "arcpublishing.com",
+      "estaticos-marca.com"
+    ],
+    urlPatterns: ["cdn"]
+  },
+  {
+    category: "fonts",
+    hosts: [
+      "fonts.googleapis.com",
+      "fonts.gstatic.com",
+      "typekit.net",
+      "use.typekit.net"
+    ],
+    urlPatterns: ["font"]
+  },
+  {
+    category: "embed",
+    hosts: [
+      "youtube.com",
+      "youtu.be",
+      "vimeo.com",
+      "player.vimeo.com",
+      "jwplayer.com"
+    ],
+    urlPatterns: ["embed", "player"]
+  },
+  {
+    category: "consent",
+    hosts: [
+      "fundingchoicesmessages.google.com",
+      "cmp",
+      "consentmanager.net",
+      "onetrust.com",
+      "cookiebot.com"
+    ],
+    urlPatterns: ["consent", "cookieconsent", "gdpr", "ccpa"]
+  },
+  {
+    category: "media",
+    hosts: [
+      "jwplayer.com",
+      "brightcove.net",
+      "akamaized.net"
+    ],
+    urlPatterns: ["video", "media", "stream"]
+  }
+];
+
+const COMMERCIAL_PARAMS = [
+  "gclid",
+  "gbraid",
+  "gad_source",
+  "gad_campaignid",
+  "fbclid",
+  "msclkid",
+  "dclid",
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_content",
+  "utm_term",
+  "mc_cid",
+  "mc_eid"
+];
+
+function freshCategories() {
+  return Object.fromEntries(CATEGORY_KEYS.map((key) => [key, 0]));
+}
+
 let liveState = {
   host: "—",
   mode: "normal",
@@ -17,62 +175,26 @@ let liveState = {
   permissions: 0,
   failed: 0,
   blocked: 0,
+  wouldBlockInLimpio: 0,
+  wouldBlockInEspejo: 0,
   lastExternal: "—",
   lastError: "—",
   lastBlocked: "—",
   icc: 0,
   risk: "bajo",
   allowedNoise: 0,
-  allowedRisk: "bajo"
+  allowedRisk: "bajo",
+  redirects: 0,
+  lastRedirect: "—",
+  commercialParams: 0,
+  lastCommercialParam: "—",
+  categories: freshCategories(),
+  measured: 0,
+  ads: 0,
+  usefulThirdParty: 0,
+  embeds: 0,
+  otherThirdParty: 0
 };
-
-const TRACKER_HINTS = [
-  "ad.",
-  "ads.",
-  "ads-",
-  "adservice",
-  "adserver",
-  "admanmedia",
-  "doubleclick",
-  "googlesyndication",
-  "googleadservices",
-  "google-analytics",
-  "analytics",
-  "tracking",
-  "tracker",
-  "pixel",
-  "cookiesync",
-  "cookie-sync",
-  "seedtag",
-  "iqzone",
-  "facebook.net",
-  "connect.facebook",
-  "scorecardresearch",
-  "taboola",
-  "outbrain",
-  "criteo",
-  "adsystem",
-  "amazon-adsystem",
-  "adnxs",
-  "rubiconproject",
-  "pubmatic",
-  "openx",
-  "teads",
-  "hotjar",
-  "quantserve",
-  "chartbeat",
-  "securepubads",
-  "cdn.ads",
-  "casalemedia",
-  "smartadserver",
-  "bidr",
-  "bidswitch",
-  "yieldmo",
-  "mediavine",
-  "gumgum",
-  "moatads",
-  "adsrvr"
-];
 
 function getHost(rawUrl) {
   try {
@@ -101,40 +223,180 @@ function isSameSite(host, baseHost) {
   );
 }
 
-function looksLikeTracker(host, rawUrl) {
-  const text = `${host} ${rawUrl}`.toLowerCase();
-  return TRACKER_HINTS.some((hint) => text.includes(hint));
+function hostMatches(host, pattern) {
+  if (!host || !pattern) return false;
+
+  const cleanHost = host.toLowerCase().replace(/^www\./, "");
+  const cleanPattern = pattern.toLowerCase().replace(/^www\./, "");
+
+  if (cleanPattern.includes(".")) {
+    return cleanHost === cleanPattern || cleanHost.endsWith("." + cleanPattern);
+  }
+
+  const labels = cleanHost.split(".");
+  return labels.includes(cleanPattern);
 }
 
-function shouldBlockRequest(details, host) {
+function patternMatches(host, rawUrl, pattern) {
+  const lowerUrl = String(rawUrl || "").toLowerCase();
+  const lowerPattern = String(pattern || "").toLowerCase();
+
+  if (lowerPattern.includes("/") || lowerPattern.includes("=")) {
+    return lowerUrl.includes(lowerPattern);
+  }
+
+  if (lowerPattern.includes(".")) {
+    return hostMatches(host, lowerPattern);
+  }
+
+  return lowerUrl.includes(lowerPattern);
+}
+
+function categorize(host, details) {
+  const rawUrl = details?.url || "";
+
+  for (const classifier of CLASSIFIERS) {
+    const hostHit = classifier.hosts?.some((pattern) => hostMatches(host, pattern));
+    const urlHit = classifier.urlPatterns?.some((pattern) => patternMatches(host, rawUrl, pattern));
+
+    if (hostHit || urlHit) return classifier.category;
+  }
+
+  return "other";
+}
+
+function wouldBlock(mode, details, host, category) {
   if (!host || !activeHost) return false;
 
   const protocol = getProtocol(details.url);
-
-  // No bloqueamos protocolos internos.
   if (!["http:", "https:"].includes(protocol)) return false;
 
-  const external = !isSameSite(host, activeHost);
   const type = details.resourceType || "unknown";
-
-  // Nunca bloquear la navegación principal del usuario.
   if (type === "mainFrame") return false;
 
-  if (currentMode === "normal") {
-    return false;
+  const external = !isSameSite(host, activeHost);
+
+  if (mode === "normal") return false;
+
+  if (mode === "limpio") {
+    return external && BLOCKABLE_IN_LIMPIO.has(category);
   }
 
-  if (currentMode === "limpio") {
-    // Limpio: bloquea terceros sospechosos de anuncios/tracking.
-    return external && looksLikeTracker(host, details.url);
-  }
-
-  if (currentMode === "espejo") {
-    // Espejo: bloquea todo tercero que no sea navegación principal.
+  if (mode === "espejo") {
     return external;
   }
 
   return false;
+}
+
+function inspectCommercialParams(rawUrl) {
+  try {
+    const u = new URL(rawUrl);
+    let found = 0;
+    let last = "—";
+
+    for (const key of COMMERCIAL_PARAMS) {
+      if (u.searchParams.has(key)) {
+        found += 1;
+        last = key;
+      }
+    }
+
+    liveState.commercialParams = found;
+    liveState.lastCommercialParam = last;
+  } catch {
+    liveState.commercialParams = 0;
+    liveState.lastCommercialParam = "—";
+  }
+}
+
+function riskLabel(score) {
+  if (score >= 75) return "crítico";
+  if (score >= 50) return "alto";
+  if (score >= 25) return "medio";
+  return "bajo";
+}
+
+function calculateDerivedMetrics() {
+  const categories = liveState.categories || freshCategories();
+
+  liveState.measured =
+    (categories.analytics || 0) +
+    (categories.social || 0);
+
+  liveState.ads = categories.ads || 0;
+
+  liveState.usefulThirdParty =
+    (categories.cdn || 0) +
+    (categories.fonts || 0);
+
+  liveState.embeds =
+    (categories.embed || 0) +
+    (categories.media || 0);
+
+  liveState.otherThirdParty = categories.other || 0;
+
+  // ICC detectado:
+  // mide contaminación intentada. Incluye bloqueados porque existieron como intento.
+  const detectedScore =
+    liveState.measured * 1.05 +
+    liveState.ads * 1.2 +
+    liveState.embeds * 0.55 +
+    liveState.otherThirdParty * 0.25 +
+    liveState.cookies * 0.55 +
+    liveState.blocked * 0.35 +
+    liveState.permissions * 8 +
+    liveState.failed * 0.25 +
+    liveState.redirects * 2 +
+    liveState.commercialParams * 7;
+
+  const icc = Math.min(100, Math.round(detectedScore));
+
+  // Ruido permitido:
+  // mide lo que queda pasando luego del modo elegido.
+  const externalAllowed = Math.max(0, liveState.external - liveState.blocked);
+  const measuredAllowed = Math.max(0, liveState.measured - liveState.blocked);
+  const adsAllowed = Math.max(0, liveState.ads - liveState.blocked);
+
+  const allowedScore =
+    externalAllowed * 0.35 +
+    measuredAllowed * 0.9 +
+    adsAllowed * 0.9 +
+    liveState.cookies * 0.45 +
+    liveState.permissions * 8 +
+    liveState.failed * 0.25 +
+    liveState.redirects * 1 +
+    liveState.commercialParams * 4;
+
+  const allowedNoise = Math.min(100, Math.round(allowedScore));
+
+  liveState.icc = icc;
+  liveState.risk = riskLabel(icc);
+  liveState.allowedNoise = allowedNoise;
+  liveState.allowedRisk = riskLabel(allowedNoise);
+}
+
+let pendingUpdate = false;
+
+function sendLiveState(immediate = false) {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+
+  if (immediate) {
+    pendingUpdate = false;
+    calculateDerivedMetrics();
+    mainWindow.webContents.send("live:update", liveState);
+    return;
+  }
+
+  if (pendingUpdate) return;
+
+  pendingUpdate = true;
+  setTimeout(() => {
+    pendingUpdate = false;
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    calculateDerivedMetrics();
+    mainWindow.webContents.send("live:update", liveState);
+  }, 100);
 }
 
 function resetHomeState() {
@@ -149,16 +411,28 @@ function resetHomeState() {
     permissions: 0,
     failed: 0,
     blocked: 0,
+    wouldBlockInLimpio: 0,
+    wouldBlockInEspejo: 0,
     lastExternal: "—",
     lastError: "—",
     lastBlocked: "—",
     icc: 0,
     risk: "bajo",
     allowedNoise: 0,
-    allowedRisk: "bajo"
+    allowedRisk: "bajo",
+    redirects: 0,
+    lastRedirect: "—",
+    commercialParams: 0,
+    lastCommercialParam: "—",
+    categories: freshCategories(),
+    measured: 0,
+    ads: 0,
+    usefulThirdParty: 0,
+    embeds: 0,
+    otherThirdParty: 0
   };
 
-  sendLiveState();
+  sendLiveState(true);
 }
 
 function resetLiveState(url) {
@@ -173,63 +447,60 @@ function resetLiveState(url) {
     permissions: 0,
     failed: 0,
     blocked: 0,
+    wouldBlockInLimpio: 0,
+    wouldBlockInEspejo: 0,
     lastExternal: "—",
     lastError: "—",
     lastBlocked: "—",
     icc: 0,
-    risk: "bajo"
+    risk: "bajo",
+    allowedNoise: 0,
+    allowedRisk: "bajo",
+    redirects: 0,
+    lastRedirect: "—",
+    commercialParams: 0,
+    lastCommercialParam: "—",
+    categories: freshCategories(),
+    measured: 0,
+    ads: 0,
+    usefulThirdParty: 0,
+    embeds: 0,
+    otherThirdParty: 0
   };
 
   console.log(`[Nubea] Nueva navegación: ${url}`);
   console.log(`[Nubea] Host activo: ${activeHost || "—"}`);
   console.log(`[Nubea] Modo durante navegación: ${currentMode}`);
 
-  sendLiveState();
+  inspectCommercialParams(url);
+  sendLiveState(true);
 }
 
-function riskLabel(score) {
-  if (score >= 75) return "crítico";
-  if (score >= 50) return "alto";
-  if (score >= 25) return "medio";
-  return "bajo";
+function observeRequest(details, host) {
+  liveState.requests += 1;
+
+  const external = !isSameSite(host, activeHost);
+  const category = categorize(host, details);
+
+  if (external) {
+    liveState.external += 1;
+    liveState.categories[category] = (liveState.categories[category] || 0) + 1;
+    liveState.lastExternal = host;
+  }
+
+  if (wouldBlock("limpio", details, host, category)) {
+    liveState.wouldBlockInLimpio += 1;
+  }
+
+  if (wouldBlock("espejo", details, host, category)) {
+    liveState.wouldBlockInEspejo += 1;
+  }
+
+  return { external, category };
 }
 
-function calculateICC() {
-  // ICC detectado:
-  // mide la contaminación intentada por la página.
-  // Incluye también lo bloqueado, porque eso existió como intento.
-  const detectedScore =
-    liveState.external * 0.35 +
-    liveState.cookies * 0.55 +
-    liveState.blocked * 0.75 +
-    liveState.permissions * 8 +
-    liveState.failed * 0.25;
-
-  const icc = Math.min(100, Math.round(detectedScore));
-
-  // Ruido permitido:
-  // mide lo que quedó pasando después del modo activo.
-  // Si Nubea bloquea mucho, este valor debería bajar.
-  const externalAllowed = Math.max(0, liveState.external - liveState.blocked);
-
-  const allowedScore =
-    externalAllowed * 0.45 +
-    liveState.cookies * 0.55 +
-    liveState.permissions * 8 +
-    liveState.failed * 0.25;
-
-  const allowedNoise = Math.min(100, Math.round(allowedScore));
-
-  liveState.icc = icc;
-  liveState.risk = riskLabel(icc);
-  liveState.allowedNoise = allowedNoise;
-  liveState.allowedRisk = riskLabel(allowedNoise);
-}
-
-function sendLiveState() {
-  if (!mainWindow || mainWindow.isDestroyed()) return;
-  calculateICC();
-  mainWindow.webContents.send("live:update", liveState);
+function decideBlock(details, host, category) {
+  return wouldBlock(currentMode, details, host, category);
 }
 
 function setupTemporarySession() {
@@ -252,24 +523,16 @@ function setupTemporarySession() {
       return;
     }
 
-    liveState.requests += 1;
-
-    const external = !isSameSite(host, activeHost);
-
-    if (external) {
-      liveState.external += 1;
-      liveState.lastExternal = host;
-    }
-
-    const block = shouldBlockRequest(details, host);
+    const { category } = observeRequest(details, host);
+    const block = decideBlock(details, host, category);
 
     if (block) {
       liveState.blocked += 1;
-      liveState.lastBlocked = `${host} · ${details.resourceType || "unknown"}`;
+      liveState.lastBlocked = `${host} · ${category} · ${details.resourceType || "unknown"}`;
 
       if (liveState.blocked <= 15 || liveState.blocked % 25 === 0) {
         console.log(
-          `[Nubea][BLOCK] total=${liveState.blocked} mode=${currentMode} type=${details.resourceType || "unknown"} host=${host}`
+          `[Nubea][BLOCK] total=${liveState.blocked} mode=${currentMode} category=${category} type=${details.resourceType || "unknown"} host=${host}`
         );
       }
 
@@ -282,13 +545,26 @@ function setupTemporarySession() {
     callback({});
   });
 
+  ses.webRequest.onBeforeRedirect({ urls: ["http://*/*", "https://*/*"] }, (details) => {
+    const fromHost = getHost(details.url);
+    const toHost = getHost(details.redirectURL);
+
+    if (!activeHost || !fromHost || !toHost) return;
+
+    liveState.redirects += 1;
+    liveState.lastRedirect = `${fromHost} → ${toHost}`;
+
+    inspectCommercialParams(details.redirectURL);
+
+    console.log(`[Nubea][REDIRECT] ${fromHost} -> ${toHost}`);
+    sendLiveState();
+  });
+
   ses.webRequest.onErrorOccurred({ urls: ["http://*/*", "https://*/*"] }, (details) => {
     const host = getHost(details.url);
 
     if (!host || !activeHost) return;
 
-    // Los bloqueos propios también generan errores cancelados.
-    // No los contamos como fallo externo real.
     if (details.error === "net::ERR_BLOCKED_BY_CLIENT" || details.error === "net::ERR_ABORTED") {
       return;
     }
@@ -304,6 +580,14 @@ function setupTemporarySession() {
       sendLiveState();
     }
   });
+}
+
+function sendPopupRequest(url) {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  if (!url || url === "about:blank") return;
+
+  console.log(`[Nubea][POPUP] Interceptado: ${url}`);
+  mainWindow.webContents.send("popup:open-inside", url);
 }
 
 function createWindow() {
@@ -325,10 +609,32 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, "index.html"));
 
-  mainWindow.webContents.setWindowOpenHandler(() => {
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    sendPopupRequest(url);
     return { action: "deny" };
   });
+
+  mainWindow.webContents.on("did-attach-webview", (_event, webContents) => {
+    webContents.setWindowOpenHandler(({ url }) => {
+      sendPopupRequest(url);
+      return { action: "deny" };
+    });
+
+    webContents.on("will-navigate", (_event, url) => {
+      if (url && url !== "about:blank") {
+        // La navegación normal dentro del webview sigue permitida.
+        // Este hook queda como punto de auditoría futura.
+      }
+    });
+  });
 }
+
+app.on("web-contents-created", (_event, contents) => {
+  contents.setWindowOpenHandler(({ url }) => {
+    sendPopupRequest(url);
+    return { action: "deny" };
+  });
+});
 
 app.whenReady().then(() => {
   setupTemporarySession();
@@ -384,5 +690,5 @@ ipcMain.on("mode:set", (_event, mode) => {
 
   console.log(`[Nubea] Modo activo: ${currentMode}`);
 
-  sendLiveState();
+  sendLiveState(true);
 });

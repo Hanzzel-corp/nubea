@@ -61,7 +61,6 @@
           class="webview hidden"
           src="about:blank"
           partition="nubea-temp"
-          allowpopups="false"
         ></webview>
 
         <nav class="tabs-bar">
@@ -161,6 +160,16 @@
             <strong id="liveAllowedRisk">bajo</strong>
           </div>
 
+          <div class="metric metric-preview">
+            <span>Bloquearía en Limpio</span>
+            <strong id="liveWouldBlockLimpio">0</strong>
+          </div>
+
+          <div class="metric metric-preview">
+            <span>Bloquearía en Espejo</span>
+            <strong id="liveWouldBlockEspejo">0</strong>
+          </div>
+
           <div class="metric metric-blocked">
             <span>Bloqueados</span>
             <strong id="liveBlocked">0</strong>
@@ -169,6 +178,51 @@
           <div class="metric metric-blocked">
             <span>Último bloqueado</span>
             <strong id="liveLastBlocked">—</strong>
+          </div>
+
+          <div class="metric metric-category">
+            <span>Te están midiendo</span>
+            <strong id="liveMeasured">0</strong>
+          </div>
+
+          <div class="metric metric-category">
+            <span>Publicidad detectada</span>
+            <strong id="liveAds">0</strong>
+          </div>
+
+          <div class="metric metric-category">
+            <span>CDN y fuentes</span>
+            <strong id="liveUsefulThirdParty">0</strong>
+          </div>
+
+          <div class="metric metric-category">
+            <span>Embeds / media</span>
+            <strong id="liveEmbeds">0</strong>
+          </div>
+
+          <div class="metric metric-category">
+            <span>Otros terceros</span>
+            <strong id="liveOtherThirdParty">0</strong>
+          </div>
+
+          <div class="metric metric-route">
+            <span>Redirecciones</span>
+            <strong id="liveRedirects">0</strong>
+          </div>
+
+          <div class="metric metric-route">
+            <span>Última redirección</span>
+            <strong id="liveLastRedirect">—</strong>
+          </div>
+
+          <div class="metric metric-route">
+            <span>Parámetros comerciales</span>
+            <strong id="liveCommercialParams">0</strong>
+          </div>
+
+          <div class="metric metric-route">
+            <span>Último parámetro</span>
+            <strong id="liveLastCommercialParam">—</strong>
           </div>
 
           <div class="metric">

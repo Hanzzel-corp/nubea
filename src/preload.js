@@ -11,5 +11,9 @@ contextBridge.exposeInMainWorld("nubeaAPI", {
 
   onLiveUpdate: (callback) => {
     ipcRenderer.on("live:update", (_event, data) => callback(data));
+  },
+
+  onPopupOpenInside: (callback) => {
+    ipcRenderer.on("popup:open-inside", (_event, url) => callback(url));
   }
 });

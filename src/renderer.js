@@ -157,6 +157,13 @@ webview.addEventListener("did-navigate-in-page", (event) => {
   sideInput.value = displayUrl(event.url);
 });
 
+webview.addEventListener("new-window", (event) => {
+  event.preventDefault();
+  if (event.url) {
+    loadUrl(event.url);
+  }
+});
+
 webview.addEventListener("did-fail-load", (event) => {
   if (event.errorCode === -3) return;
   console.error("[Nubea] did-fail-load:", event.errorCode, event.errorDescription, event.validatedURL);
@@ -187,6 +194,11 @@ document.querySelectorAll(".mode").forEach((btn) => {
   });
 });
 
+window.nubeaAPI.onPopupOpenInside((url) => {
+  if (!url || url === "about:blank") return;
+  loadUrl(url);
+});
+
 window.nubeaAPI.onLiveUpdate((data) => {
   document.getElementById("liveHost").textContent = data.host ?? "—";
   document.getElementById("liveRequests").textContent = data.requests ?? 0;
@@ -204,6 +216,13 @@ window.nubeaAPI.onLiveUpdate((data) => {
   const risk = document.getElementById("liveRisk");
   const allowedNoise = document.getElementById("liveAllowedNoise");
   const allowedRisk = document.getElementById("liveAllowedRisk");
+  const wouldBlockLimpio = document.getElementById("liveWouldBlockLimpio");
+  const wouldBlockEspejo = document.getElementById("liveWouldBlockEspejo");
+  const measured = document.getElementById("liveMeasured");
+  const ads = document.getElementById("liveAds");
+  const usefulThirdParty = document.getElementById("liveUsefulThirdParty");
+  const embeds = document.getElementById("liveEmbeds");
+  const otherThirdParty = document.getElementById("liveOtherThirdParty");
 
   if (liveMode) liveMode.textContent = data.mode ?? activeMode;
   if (failed) failed.textContent = data.failed ?? 0;
@@ -215,4 +234,11 @@ window.nubeaAPI.onLiveUpdate((data) => {
   if (risk) risk.textContent = data.risk ?? "bajo";
   if (allowedNoise) allowedNoise.textContent = data.allowedNoise ?? 0;
   if (allowedRisk) allowedRisk.textContent = data.allowedRisk ?? "bajo";
+  if (wouldBlockLimpio) wouldBlockLimpio.textContent = data.wouldBlockInLimpio ?? 0;
+  if (wouldBlockEspejo) wouldBlockEspejo.textContent = data.wouldBlockInEspejo ?? 0;
+  if (measured) measured.textContent = data.measured ?? 0;
+  if (ads) ads.textContent = data.ads ?? 0;
+  if (usefulThirdParty) usefulThirdParty.textContent = data.usefulThirdParty ?? 0;
+  if (embeds) embeds.textContent = data.embeds ?? 0;
+  if (otherThirdParty) otherThirdParty.textContent = data.otherThirdParty ?? 0;
 });
