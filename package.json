@@ -18,7 +18,10 @@
     "electron",
     "nubea"
   ],
-  "author": "Hanzzel Corp",
+  "author": {
+    "name": "Hanzzel Corp",
+    "email": "zamorajose03@gmail.com"
+  },
   "license": "MIT",
   "type": "commonjs",
   "homepage": "https://github.com/Hanzzel-corp/nubea-browser",
@@ -57,7 +60,8 @@
         }
       ],
       "category": "Network",
-      "icon": "build/icon.png"
+      "icon": "build/icon.png",
+      "maintainer": "Hanzzel Corp <zamorajose03@gmail.com>"
     }
   },
   "devDependencies": {
