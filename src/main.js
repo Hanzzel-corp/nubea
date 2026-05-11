@@ -258,13 +258,23 @@ function patternMatches(host, rawUrl, pattern) {
 
 function categorize(host, details) {
   const rawUrl = details?.url || "";
+  const resourceType = details?.resourceType || "";
 
+  // Primero clasificamos por host. Es más confiable que buscar palabras sueltas en la URL.
   for (const classifier of CLASSIFIERS) {
     const hostHit = classifier.hosts?.some((pattern) => hostMatches(host, pattern));
-    const urlHit = classifier.urlPatterns?.some((pattern) => patternMatches(host, rawUrl, pattern));
-
-    if (hostHit || urlHit) return classifier.category;
+    if (hostHit) return classifier.category;
   }
+
+  // Después usamos patrones de URL, pero solo como segunda capa.
+  for (const classifier of CLASSIFIERS) {
+    const urlHit = classifier.urlPatterns?.some((pattern) => patternMatches(host, rawUrl, pattern));
+    if (urlHit) return classifier.category;
+  }
+
+  // Fallback por tipo de recurso.
+  if (resourceType === "font") return "fonts";
+  if (resourceType === "media") return "media";
 
   return "other";
 }
