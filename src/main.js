@@ -186,6 +186,10 @@ let liveState = {
   allowedRisk: "bajo",
   redirects: 0,
   lastRedirect: "—",
+  thirdPartyRedirects: 0,
+  lastThirdPartyRedirect: "—",
+  identitySyncs: 0,
+  lastIdentitySync: "—",
   commercialParams: 0,
   lastCommercialParam: "—",
   categories: freshCategories(),
@@ -289,6 +293,45 @@ function wouldBlock(mode, details, host, category) {
   return false;
 }
 
+function looksLikeIdentitySync(rawUrl, fromHost = "", toHost = "") {
+  const text = `${rawUrl} ${fromHost} ${toHost}`.toLowerCase();
+
+  return (
+    text.includes("sync") ||
+    text.includes("cookie") ||
+    text.includes("cookiesync") ||
+    text.includes("match") ||
+    text.includes("cm.g.doubleclick.net") ||
+    text.includes("idsync") ||
+    text.includes("pixel") ||
+    text.includes("uid") ||
+    text.includes("adnxs") ||
+    text.includes("pubmatic") ||
+    text.includes("rubiconproject") ||
+    text.includes("bidswitch") ||
+    text.includes("casalemedia") ||
+    text.includes("openx") ||
+    text.includes("seedtag") ||
+    text.includes("outbrain") ||
+    text.includes("criteo")
+  );
+}
+
+function isRouteRedirect(details, fromHost, toHost) {
+  const type = details.resourceType || "unknown";
+
+  if (type === "mainFrame") return true;
+
+  if (!activeHost || !fromHost || !toHost) return false;
+
+  // Redirección relacionada con el dominio principal.
+  return isSameSite(fromHost, activeHost) || isSameSite(toHost, activeHost);
+}
+
+function shouldLogRedirect(count) {
+  return count <= 10 || count % 25 === 0;
+}
+
 function inspectCommercialParams(rawUrl) {
   try {
     const u = new URL(rawUrl);
@@ -348,6 +391,8 @@ function calculateDerivedMetrics() {
     liveState.permissions * 8 +
     liveState.failed * 0.25 +
     liveState.redirects * 2 +
+    liveState.thirdPartyRedirects * 0.6 +
+    liveState.identitySyncs * 1.8 +
     liveState.commercialParams * 7;
 
   const icc = Math.min(100, Math.round(detectedScore));
@@ -366,6 +411,8 @@ function calculateDerivedMetrics() {
     liveState.permissions * 8 +
     liveState.failed * 0.25 +
     liveState.redirects * 1 +
+    liveState.thirdPartyRedirects * 0.25 +
+    liveState.identitySyncs * 0.7 +
     liveState.commercialParams * 4;
 
   const allowedNoise = Math.min(100, Math.round(allowedScore));
@@ -551,14 +598,37 @@ function setupTemporarySession() {
 
     if (!activeHost || !fromHost || !toHost) return;
 
-    liveState.redirects += 1;
-    liveState.lastRedirect = `${fromHost} → ${toHost}`;
-
     inspectCommercialParams(details.redirectURL);
 
-    console.log(`[Nubea][REDIRECT] ${fromHost} -> ${toHost}`);
+    const routeRedirect = isRouteRedirect(details, fromHost, toHost);
+    const identitySync = looksLikeIdentitySync(details.redirectURL, fromHost, toHost);
+
+    if (routeRedirect) {
+      liveState.redirects += 1;
+      liveState.lastRedirect = `${fromHost} → ${toHost}`;
+
+      if (shouldLogRedirect(liveState.redirects)) {
+        console.log(`[Nubea][ROUTE] total=${liveState.redirects} ${fromHost} -> ${toHost}`);
+      }
+    } else {
+      liveState.thirdPartyRedirects += 1;
+      liveState.lastThirdPartyRedirect = `${fromHost} → ${toHost}`;
+
+      if (identitySync) {
+        liveState.identitySyncs += 1;
+        liveState.lastIdentitySync = `${fromHost} → ${toHost}`;
+      }
+
+      if (shouldLogRedirect(liveState.thirdPartyRedirects)) {
+        console.log(
+          `[Nubea][THIRD_REDIRECT] total=${liveState.thirdPartyRedirects} sync=${identitySync ? "yes" : "no"} ${fromHost} -> ${toHost}`
+        );
+      }
+    }
+
     sendLiveState();
   });
+
 
   ses.webRequest.onErrorOccurred({ urls: ["http://*/*", "https://*/*"] }, (details) => {
     const host = getHost(details.url);
