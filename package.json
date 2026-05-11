@@ -1,6 +1,6 @@
 {
   "name": "nubea-browser",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Nubea - navegador simple sin historial por diseño",
   "main": "src/main.js",
   "scripts": {
@@ -45,11 +45,15 @@
       "target": [
         {
           "target": "AppImage",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "deb",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "category": "Network",
