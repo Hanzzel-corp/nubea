@@ -6,6 +6,7 @@ let mainWindow = null;
 const NUBEA_PARTITION = "nubea-temp"; // sin "persist:" => sesión temporal/en memoria
 
 let currentMode = "normal";
+let appliedMode = "normal";
 let activeHost = "";
 
 const CATEGORY_KEYS = [
@@ -33,6 +34,8 @@ const CLASSIFIERS = [
     hosts: [
       "google-analytics.com",
       "analytics.google.com",
+      "googletagmanager.com",
+      "www.googletagmanager.com",
       "hotjar.com",
       "chartbeat.com",
       "quantserve.com",
@@ -127,7 +130,6 @@ const CLASSIFIERS = [
     category: "consent",
     hosts: [
       "fundingchoicesmessages.google.com",
-      "cmp",
       "consentmanager.net",
       "onetrust.com",
       "cookiebot.com"
@@ -137,7 +139,6 @@ const CLASSIFIERS = [
   {
     category: "media",
     hosts: [
-      "jwplayer.com",
       "brightcove.net",
       "akamaized.net"
     ],
@@ -166,39 +167,48 @@ function freshCategories() {
   return Object.fromEntries(CATEGORY_KEYS.map((key) => [key, 0]));
 }
 
-let liveState = {
-  host: "—",
-  mode: "normal",
-  requests: 0,
-  external: 0,
-  cookies: 0,
-  permissions: 0,
-  failed: 0,
-  blocked: 0,
-  wouldBlockInLimpio: 0,
-  wouldBlockInEspejo: 0,
-  lastExternal: "—",
-  lastError: "—",
-  lastBlocked: "—",
-  icc: 0,
-  risk: "bajo",
-  allowedNoise: 0,
-  allowedRisk: "bajo",
-  redirects: 0,
-  lastRedirect: "—",
-  thirdPartyRedirects: 0,
-  lastThirdPartyRedirect: "—",
-  identitySyncs: 0,
-  lastIdentitySync: "—",
-  commercialParams: 0,
-  lastCommercialParam: "—",
-  categories: freshCategories(),
-  measured: 0,
-  ads: 0,
-  usefulThirdParty: 0,
-  embeds: 0,
-  otherThirdParty: 0
-};
+let commercialParamKeysSeen = new Set();
+
+function freshLiveState(overrides = {}) {
+  commercialParamKeysSeen = new Set();
+
+  return {
+    host: "—",
+    mode: currentMode,
+    requests: 0,
+    external: 0,
+    cookies: 0,
+    permissions: 0,
+    failed: 0,
+    blocked: 0,
+    wouldBlockInLimpio: 0,
+    wouldBlockInEspejo: 0,
+    lastExternal: "—",
+    lastError: "—",
+    lastBlocked: "—",
+    icc: 0,
+    risk: "bajo",
+    allowedNoise: 0,
+    allowedRisk: "bajo",
+    redirects: 0,
+    lastRedirect: "—",
+    thirdPartyRedirects: 0,
+    lastThirdPartyRedirect: "—",
+    identitySyncs: 0,
+    lastIdentitySync: "—",
+    commercialParams: 0,
+    lastCommercialParam: "—",
+    categories: freshCategories(),
+    measured: 0,
+    ads: 0,
+    usefulThirdParty: 0,
+    embeds: 0,
+    otherThirdParty: 0,
+    ...overrides
+  };
+}
+
+let liveState = freshLiveState();
 
 function getHost(rawUrl) {
   try {
@@ -303,28 +313,70 @@ function wouldBlock(mode, details, host, category) {
   return false;
 }
 
-function looksLikeIdentitySync(rawUrl, fromHost = "", toHost = "") {
-  const text = `${rawUrl} ${fromHost} ${toHost}`.toLowerCase();
+const IDENTITY_SYNC_HOSTS = [
+  "doubleclick.net",
+  "cm.g.doubleclick.net",
+  "adnxs.com",
+  "pubmatic.com",
+  "rubiconproject.com",
+  "bidswitch.net",
+  "casalemedia.com",
+  "openx.net",
+  "seedtag.com",
+  "outbrain.com",
+  "criteo.com",
+  "demdex.net",
+  "simpli.fi",
+  "mgid.com",
+  "trkn.us",
+  "adsrvr.org",
+  "rlcdn.com",
+  "pippio.com",
+  "tapad.com",
+  "lijit.com",
+  "smartadserver.com"
+];
 
-  return (
-    text.includes("sync") ||
-    text.includes("cookie") ||
-    text.includes("cookiesync") ||
-    text.includes("match") ||
-    text.includes("cm.g.doubleclick.net") ||
-    text.includes("idsync") ||
-    text.includes("pixel") ||
-    text.includes("uid") ||
-    text.includes("adnxs") ||
-    text.includes("pubmatic") ||
-    text.includes("rubiconproject") ||
-    text.includes("bidswitch") ||
-    text.includes("casalemedia") ||
-    text.includes("openx") ||
-    text.includes("seedtag") ||
-    text.includes("outbrain") ||
-    text.includes("criteo")
-  );
+const IDENTITY_SYNC_PATH_TOKENS = [
+  "/sync",
+  "/idsync",
+  "/cookie-sync",
+  "/cookiesync",
+  "/match",
+  "/usync",
+  "/cm",
+  "/pixel-sync"
+];
+
+const IDENTITY_SYNC_PARAMS = [
+  "uid",
+  "uuid",
+  "user_id",
+  "userid",
+  "partner_uid",
+  "buyeruid",
+  "google_gid",
+  "eid"
+];
+
+function looksLikeIdentitySync(rawUrl, fromHost = "", toHost = "") {
+  const fromKnown = IDENTITY_SYNC_HOSTS.some((pattern) => hostMatches(fromHost, pattern));
+  const toKnown = IDENTITY_SYNC_HOSTS.some((pattern) => hostMatches(toHost, pattern));
+
+  if (!fromKnown && !toKnown) return false;
+
+  try {
+    const u = new URL(rawUrl);
+    const path = `${u.pathname}${u.search}`.toLowerCase();
+
+    const pathHit = IDENTITY_SYNC_PATH_TOKENS.some((token) => path.includes(token));
+    const paramHit = IDENTITY_SYNC_PARAMS.some((param) => u.searchParams.has(param));
+
+    return pathHit || paramHit || hostMatches(toHost, "cm.g.doubleclick.net");
+  } catch {
+    const text = String(rawUrl || "").toLowerCase();
+    return IDENTITY_SYNC_PATH_TOKENS.some((token) => text.includes(token));
+  }
 }
 
 function isRouteRedirect(details, fromHost, toHost) {
@@ -345,22 +397,61 @@ function shouldLogRedirect(count) {
 function inspectCommercialParams(rawUrl) {
   try {
     const u = new URL(rawUrl);
-    let found = 0;
-    let last = "—";
 
     for (const key of COMMERCIAL_PARAMS) {
       if (u.searchParams.has(key)) {
-        found += 1;
-        last = key;
+        commercialParamKeysSeen.add(key);
+        liveState.lastCommercialParam = key;
       }
     }
 
-    liveState.commercialParams = found;
-    liveState.lastCommercialParam = last;
+    liveState.commercialParams = commercialParamKeysSeen.size;
+
+    if (liveState.commercialParams === 0) {
+      liveState.lastCommercialParam = "—";
+    }
   } catch {
-    liveState.commercialParams = 0;
-    liveState.lastCommercialParam = "—";
+    liveState.commercialParams = commercialParamKeysSeen.size;
+    liveState.lastCommercialParam = liveState.lastCommercialParam || "—";
   }
+}
+
+function safeNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function normalizeLiveState() {
+  liveState.requests = safeNumber(liveState.requests);
+  liveState.external = safeNumber(liveState.external);
+  liveState.cookies = safeNumber(liveState.cookies);
+  liveState.permissions = safeNumber(liveState.permissions);
+  liveState.failed = safeNumber(liveState.failed);
+  liveState.blocked = safeNumber(liveState.blocked);
+  liveState.wouldBlockInLimpio = safeNumber(liveState.wouldBlockInLimpio);
+  liveState.wouldBlockInEspejo = safeNumber(liveState.wouldBlockInEspejo);
+  liveState.redirects = safeNumber(liveState.redirects);
+  liveState.thirdPartyRedirects = safeNumber(liveState.thirdPartyRedirects);
+  liveState.identitySyncs = safeNumber(liveState.identitySyncs);
+  liveState.commercialParams = safeNumber(liveState.commercialParams);
+
+  if (!liveState.categories || typeof liveState.categories !== "object") {
+    liveState.categories = freshCategories();
+  }
+
+  for (const key of CATEGORY_KEYS) {
+    liveState.categories[key] = safeNumber(liveState.categories[key]);
+  }
+
+  liveState.host = liveState.host || "—";
+  liveState.mode = liveState.mode || currentMode || "normal";
+  liveState.lastExternal = liveState.lastExternal || "—";
+  liveState.lastError = liveState.lastError || "—";
+  liveState.lastBlocked = liveState.lastBlocked || "—";
+  liveState.lastRedirect = liveState.lastRedirect || "—";
+  liveState.lastThirdPartyRedirect = liveState.lastThirdPartyRedirect || "—";
+  liveState.lastIdentitySync = liveState.lastIdentitySync || "—";
+  liveState.lastCommercialParam = liveState.lastCommercialParam || "—";
 }
 
 function riskLabel(score) {
@@ -370,7 +461,19 @@ function riskLabel(score) {
   return "bajo";
 }
 
+/**
+ * Racionalidad de pesos ICC:
+ * - permissions pesa alto porque un permiso nativo cambia la relación sitio/usuario.
+ * - ads y measured pesan más que CDN/fuentes porque se asocian a captura comercial o medición.
+ * - blocked suma al ICC detectado porque fue un intento real de carga.
+ * - allowedNoise intenta estimar lo que quedó pasando después del filtro activo.
+ *
+ * Esta fórmula es heurística de prototipo. Para una versión pública más fuerte,
+ * conviene calibrarla contra una muestra de sitios y documentar el método.
+ */
 function calculateDerivedMetrics() {
+  normalizeLiveState();
+
   const categories = liveState.categories || freshCategories();
 
   liveState.measured =
@@ -405,7 +508,7 @@ function calculateDerivedMetrics() {
     liveState.identitySyncs * 1.8 +
     liveState.commercialParams * 7;
 
-  const icc = Math.min(100, Math.round(detectedScore));
+  const icc = Math.min(100, Math.round(safeNumber(detectedScore)));
 
   // Ruido permitido:
   // mide lo que queda pasando luego del modo elegido.
@@ -425,7 +528,7 @@ function calculateDerivedMetrics() {
     liveState.identitySyncs * 0.7 +
     liveState.commercialParams * 4;
 
-  const allowedNoise = Math.min(100, Math.round(allowedScore));
+  const allowedNoise = Math.min(100, Math.round(safeNumber(allowedScore)));
 
   liveState.icc = icc;
   liveState.risk = riskLabel(icc);
@@ -458,76 +561,22 @@ function sendLiveState(immediate = false) {
 
 function resetHomeState() {
   activeHost = "";
-
-  liveState = {
-    host: "—",
-    mode: currentMode,
-    requests: 0,
-    external: 0,
-    cookies: 0,
-    permissions: 0,
-    failed: 0,
-    blocked: 0,
-    wouldBlockInLimpio: 0,
-    wouldBlockInEspejo: 0,
-    lastExternal: "—",
-    lastError: "—",
-    lastBlocked: "—",
-    icc: 0,
-    risk: "bajo",
-    allowedNoise: 0,
-    allowedRisk: "bajo",
-    redirects: 0,
-    lastRedirect: "—",
-    commercialParams: 0,
-    lastCommercialParam: "—",
-    categories: freshCategories(),
-    measured: 0,
-    ads: 0,
-    usefulThirdParty: 0,
-    embeds: 0,
-    otherThirdParty: 0
-  };
-
+  liveState = freshLiveState({ mode: currentMode });
   sendLiveState(true);
 }
 
 function resetLiveState(url) {
   activeHost = getHost(url);
+  appliedMode = currentMode;
 
-  liveState = {
+  liveState = freshLiveState({
     host: activeHost || "—",
-    mode: currentMode,
-    requests: 0,
-    external: 0,
-    cookies: 0,
-    permissions: 0,
-    failed: 0,
-    blocked: 0,
-    wouldBlockInLimpio: 0,
-    wouldBlockInEspejo: 0,
-    lastExternal: "—",
-    lastError: "—",
-    lastBlocked: "—",
-    icc: 0,
-    risk: "bajo",
-    allowedNoise: 0,
-    allowedRisk: "bajo",
-    redirects: 0,
-    lastRedirect: "—",
-    commercialParams: 0,
-    lastCommercialParam: "—",
-    categories: freshCategories(),
-    measured: 0,
-    ads: 0,
-    usefulThirdParty: 0,
-    embeds: 0,
-    otherThirdParty: 0
-  };
+    mode: appliedMode
+  });
 
   console.log(`[Nubea] Nueva navegación: ${url}`);
   console.log(`[Nubea] Host activo: ${activeHost || "—"}`);
-  console.log(`[Nubea] Modo durante navegación: ${currentMode}`);
+  console.log(`[Nubea] Modo durante navegación: ${appliedMode}`);
 
   inspectCommercialParams(url);
   sendLiveState(true);
@@ -557,7 +606,7 @@ function observeRequest(details, host) {
 }
 
 function decideBlock(details, host, category) {
-  return wouldBlock(currentMode, details, host, category);
+  return wouldBlock(appliedMode, details, host, category);
 }
 
 function setupTemporarySession() {
@@ -589,7 +638,7 @@ function setupTemporarySession() {
 
       if (liveState.blocked <= 15 || liveState.blocked % 25 === 0) {
         console.log(
-          `[Nubea][BLOCK] total=${liveState.blocked} mode=${currentMode} category=${category} type=${details.resourceType || "unknown"} host=${host}`
+          `[Nubea][BLOCK] total=${liveState.blocked} mode=${appliedMode} category=${category} type=${details.resourceType || "unknown"} host=${host}`
         );
       }
 

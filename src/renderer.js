@@ -14,8 +14,14 @@ const searchGo = document.getElementById("searchGo");
 const sideInput = document.getElementById("sideInput");
 const refreshBtn = document.getElementById("refreshBtn");
 
+const choiceOverlay = document.getElementById("choiceOverlay");
+const choiceText = document.getElementById("choiceText");
+const choiceOptions = document.getElementById("choiceOptions");
+const choiceCancel = document.getElementById("choiceCancel");
+
 const tabInicio = document.getElementById("tabInicio");
 const tabBusqueda = document.getElementById("tabBusqueda");
+const tabPlus = document.getElementById("tabPlus");
 
 const searchEngines = {
   google: "https://www.google.com/search?q=",
@@ -36,6 +42,17 @@ function getSelectedEngine() {
   return selected ? selected.value : "google";
 }
 
+function isAmbiguousDestination(raw) {
+  const value = raw.trim();
+  if (!value) return false;
+
+  const hasProtocol = value.startsWith("http://") || value.startsWith("https://");
+  const hasDot = value.includes(".");
+  const hasSpace = value.includes(" ");
+
+  return !hasProtocol && !hasDot && !hasSpace;
+}
+
 function buildDirectUrl(raw) {
   const value = raw.trim();
   if (!value) return "";
@@ -48,10 +65,62 @@ function buildDirectUrl(raw) {
     return "https://" + value;
   }
 
-  // Decisión explícita de Nubea:
-  // en modo "Ir a una web", una palabra no se manda al buscador.
-  // Se interpreta como dominio simple .com.
-  return "https://" + value + ".com";
+  return "";
+}
+
+function buildDestinationChoices(raw) {
+  const value = raw.trim().toLowerCase();
+
+  return [
+    {
+      label: `${value}.com`,
+      detail: "Abrir como dominio global",
+      action: () => loadUrl(`https://${value}.com`)
+    },
+    {
+      label: `${value}.com.ar`,
+      detail: "Abrir como dominio argentino",
+      action: () => loadUrl(`https://${value}.com.ar`)
+    },
+    {
+      label: `www.${value}.com`,
+      detail: "Probar con www",
+      action: () => loadUrl(`https://www.${value}.com`)
+    },
+    {
+      label: `Buscar “${raw.trim()}”`,
+      detail: "Usar el buscador elegido",
+      action: () => navigateSearch(raw)
+    }
+  ];
+}
+
+function hideDestinationChoice() {
+  if (!choiceOverlay) return;
+  choiceOverlay.classList.add("hidden");
+  choiceOptions.innerHTML = "";
+}
+
+function showDestinationChoice(raw) {
+  if (!choiceOverlay || !choiceOptions || !choiceText) return;
+
+  const value = raw.trim();
+  choiceText.textContent = `“${value}” puede ser un sitio o una búsqueda. Elegí qué querés hacer.`;
+
+  choiceOptions.innerHTML = "";
+
+  for (const option of buildDestinationChoices(value)) {
+    const btn = document.createElement("button");
+    btn.className = "choice-option";
+    btn.innerHTML = `<strong>${option.label}</strong><small>${option.detail}</small>`;
+    btn.addEventListener("click", () => {
+      hideDestinationChoice();
+      option.action();
+    });
+    choiceOptions.appendChild(btn);
+  }
+
+  choiceOverlay.classList.remove("hidden");
 }
 
 function buildSearchUrl(raw) {
@@ -78,11 +147,17 @@ function setTabState(state) {
 }
 
 function showHome() {
+  hideDestinationChoice();
+  hasLoadedSomething = false;
   webview.classList.add("hidden");
   homeScreen.classList.remove("hidden");
   sideInput.value = "";
   window.nubeaAPI.homeReset();
   setTabState("home");
+
+  if (directInput) {
+    setTimeout(() => directInput.focus(), 80);
+  }
 }
 
 function showWeb() {
@@ -107,7 +182,15 @@ function loadUrl(url) {
 }
 
 function navigateDirect(raw) {
-  loadUrl(buildDirectUrl(raw));
+  const value = raw.trim();
+  if (!value) return;
+
+  if (isAmbiguousDestination(value)) {
+    showDestinationChoice(value);
+    return;
+  }
+
+  loadUrl(buildDirectUrl(value));
 }
 
 function navigateSearch(raw) {
@@ -122,6 +205,16 @@ function reloadCurrentPage() {
 
   startNavigation(currentUrl);
   webview.reload();
+}
+
+if (choiceCancel) {
+  choiceCancel.addEventListener("click", hideDestinationChoice);
+}
+
+if (choiceOverlay) {
+  choiceOverlay.addEventListener("click", (event) => {
+    if (event.target === choiceOverlay) hideDestinationChoice();
+  });
 }
 
 directGo.addEventListener("click", () => navigateDirect(directInput.value));
@@ -170,6 +263,10 @@ webview.addEventListener("did-fail-load", (event) => {
 });
 
 tabInicio.addEventListener("click", showHome);
+
+if (tabPlus) {
+  tabPlus.addEventListener("click", showHome);
+}
 
 tabBusqueda.addEventListener("click", () => {
   if (hasLoadedSomething) showWeb();

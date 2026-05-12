@@ -74,7 +74,7 @@
             Búsqueda 1
           </button>
 
-          <button class="tab plus">+</button>
+          <button id="tabPlus" class="tab plus" title="Nueva navegación">+</button>
         </nav>
       </section>
 
@@ -286,6 +286,16 @@
         </section>
       </aside>
     </main>
+  </div>
+
+
+  <div id="choiceOverlay" class="choice-overlay hidden">
+    <div class="choice-card">
+      <h3>Elegí el destino</h3>
+      <p id="choiceText">Nubea no va a convertir esto automáticamente en búsqueda.</p>
+      <div id="choiceOptions" class="choice-options"></div>
+      <button id="choiceCancel" class="choice-cancel">Cancelar</button>
+    </div>
   </div>
 
   <script src="./renderer.js"></script>
